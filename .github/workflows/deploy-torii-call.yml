@@ -1,0 +1,101 @@
+name: Deploy Torii Call to VPS
+
+# Deploy the Torii Call app to the owner's VPS at /call/.
+#
+# Mirrors the flock-map restricted-deploy pattern: this repo carries its OWN
+# deploy SSH key and host-key trust anchor. The key is a RESTRICTED key — sshd
+# forces it to run ONLY /usr/local/bin/torii-call-deploy (no shell, no pty, no
+# forwarding), which validates the payload against a whitelist and hands it to a
+# pinned installer via a fixed-path sudoers rule.
+#
+# Host-key verification: the live ed25519 fingerprint must match
+# VPS_DEPLOY_HOST_KEY before any remote command runs.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: torii-call-vps-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps and run tests
+        run: npm install && npm test
+
+      - name: Require release tag == VERSION
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          v="$(tr -d '[:space:]' < VERSION)"
+          if [[ "$REF_TYPE" != "tag" || "$REF_NAME" != "v$v" ]]; then
+            echo "::error::deploy must run from tag v$v (got $REF_TYPE '$REF_NAME')"
+            exit 1
+          fi
+
+      - name: Install SSH key (host-key verified)
+        env:
+          SSH_KEY: ${{ secrets.VPS_DEPLOY_SSH_KEY }}
+          SSH_HOST: ${{ secrets.VPS_DEPLOY_HOST }}
+          VPS_DEPLOY_HOST_KEY: ${{ secrets.VPS_DEPLOY_HOST_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SSH_KEY:-}" || -z "${SSH_HOST:-}" ]]; then
+            echo "::error::VPS_DEPLOY_SSH_KEY or VPS_DEPLOY_HOST secret is not set"
+            exit 1
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          umask 077
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519_deploy
+          chmod 600 ~/.ssh/id_ed25519_deploy
+
+          host_only="${SSH_HOST#*@}"
+          scan="$(mktemp)"
+          ssh-keyscan -T 10 -t ed25519 "$host_only" > "$scan" 2>/dev/null || true
+          live_fp="$(ssh-keygen -lf "$scan" -E sha256 2>/dev/null | awk 'NF>=2 {print $2}' | head -n1)"
+          rm -f "$scan"
+          expected_fp="${VPS_DEPLOY_HOST_KEY}"
+          [[ "$expected_fp" == SHA256:* ]] || expected_fp="SHA256:${expected_fp}"
+          if [[ -z "$live_fp" || "$live_fp" != "$expected_fp" ]]; then
+            echo "::error::VPS host key mismatch: expected $expected_fp, got ${live_fp:-<none>}"
+            exit 1
+          fi
+          ssh-keyscan -T 10 -t ed25519 "$host_only" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy
+        env:
+          SSH_HOST: ${{ secrets.VPS_DEPLOY_HOST }}
+        run: |
+          set -euo pipefail
+          tar -czf torii-call-src.tar.gz server public coturn deploy package.json VERSION install.sh
+          scp -i ~/.ssh/id_ed25519_deploy torii-call-src.tar.gz "$SSH_HOST":/tmp/torii-call-src.tar.gz
+          ssh -i ~/.ssh/id_ed25519_deploy "$SSH_HOST" \
+            "sudo /usr/local/bin/torii-call-deploy /tmp/torii-call-src.tar.gz"
+
+      - name: Health check
+        env:
+          HTTPS_URL: ${{ vars.TORII_CALL_URL }}
+        run: |
+          url="${HTTPS_URL:-}"
+          if [[ -n "$url" ]]; then
+            curl -fsS --max-time 15 "$url" >/dev/null && echo "health check OK"
+          else
+            echo "::warning::TORII_CALL_URL not set; skipping health check"
+          fi

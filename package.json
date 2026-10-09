@@ -1,0 +1,15 @@
+{
+  "name": "torii-call",
+  "version": "0.1.0",
+  "description": "Private, invite-link group video calls. Self-hosted WebRTC mesh + WebSocket signaling.",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node tools/test.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

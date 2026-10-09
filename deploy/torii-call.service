@@ -1,0 +1,26 @@
+[Unit]
+Description=Torii Call (private group video) server
+After=network.target
+
+[Service]
+Type=simple
+User=torii
+WorkingDirectory=/apps/torii-call/current
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=2
+
+# Port the Node server binds (nginx proxies /call/ -> 127.0.0.1:$PORT).
+Environment=PORT=3001
+Environment=HOST=127.0.0.1
+Environment=BASE_PATH=/call
+
+# TURN relay (coturn). Leave TURN_URL empty to run STUN-only.
+Environment=TURN_URL=turn:CHANGEME:3478?transport=udp
+Environment=TURN_USER=torii
+Environment=TURN_PASS=__CHANGE_TURN_PASSWORD__
+
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

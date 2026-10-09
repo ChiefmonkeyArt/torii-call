@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Torii Call</title>
+  <meta name="description" content="Private, invite-link group video calls. Self-hosted.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Landing -->
+  <main id="landing" class="landing">
+    <div class="card">
+      <h1>Torii Call</h1>
+      <p class="sub">Private group video. Invite by link — no account, no middleman.</p>
+      <label class="field">
+        <span>Your name</span>
+        <input id="name" type="text" maxlength="40" placeholder="e.g. chiefmonkey" autocomplete="off">
+      </label>
+      <div class="actions">
+        <button id="start" class="primary">Start a call</button>
+      </div>
+      <p class="hint" id="device-hint">
+        Camera &amp; microphone are shared only with the people in your call.
+      </p>
+    </div>
+  </main>
+
+  <!-- Call -->
+  <main id="call" hidden>
+    <header class="topbar">
+      <div class="brand">Torii Call</div>
+      <div class="room-meta">
+        <span id="count">1 in call</span>
+        <button id="copy-link" title="Copy invite link">Copy link</button>
+      </div>
+    </header>
+
+    <section id="grid" class="grid"></section>
+
+    <footer class="controls">
+      <button id="toggle-mic" class="ctrl active">Mic</button>
+      <button id="toggle-cam" class="ctrl active">Camera</button>
+      <button id="chat-toggle" class="ctrl">Chat</button>
+      <button id="leave" class="ctrl danger">Leave</button>
+    </footer>
+
+    <aside id="chat" hidden>
+      <div id="messages"></div>
+      <form id="chat-form">
+        <input id="chat-input" type="text" maxlength="1000" placeholder="Message…" autocomplete="off">
+      </form>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
