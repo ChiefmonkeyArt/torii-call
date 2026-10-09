@@ -49,10 +49,15 @@
     return pk.length > 16 ? pk.slice(0, 10) + "…" + pk.slice(-6) : pk;
   }
 
-  async function resolvePubkey() {
+  async function resolvePubkey(timeoutMs = 2500) {
     try {
       if (window.nostr && typeof window.nostr.getPublicKey === "function") {
-        pubkey = await window.nostr.getPublicKey();
+        pubkey = await Promise.race([
+          window.nostr.getPublicKey(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("signer timeout")), timeoutMs)
+          ),
+        ]);
       }
     } catch {}
     return pubkey;
@@ -251,22 +256,26 @@
 
   // ---- start / leave ---------------------------------------------------------
   async function start() {
-    await resolvePubkey();
     const typed = (nameInput.value || "").trim();
-    myName = typed || (pubkey ? shortNpub(pubkey) : "guest");
     roomId = ensureRoom();
 
+    // Switch the view immediately — never let identity or media resolution
+    // freeze the UI (a stuck NIP-07 signer used to hang the whole click here).
     landing.hidden = true;
     callView.hidden = false;
     setCount();
 
+    // Resolve npub with a timeout so a broken/unlocked signer falls back to guest.
+    await resolvePubkey(2500);
+    myName = typed || (pubkey ? shortNpub(pubkey) : "guest");
+
+    connect();
+
     try {
       await ensureMedia();
     } catch (e) {
-      // Media denied — still allow joining as a listener? No: needs media for MVP.
       showError("Camera/microphone access is required: " + e.name);
     }
-    connect();
   }
 
   function showError(msg) {
