@@ -37,14 +37,24 @@ Open it twice (or in two browsers), share the invite link, and talk.
 
 ## Deploy to your VPS (one line)
 
+The repo is private, so clone with a deploy key or a read token first:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ChiefmonkeyArt/torii-call/main/install.sh | sudo bash
+git clone https://github.com/ChiefmonkeyArt/torii-call.git && cd torii-call && sudo ./install.sh
+# or, on a host without an SSH key:  GH_TOKEN=ghp_xxx sudo -E ./install.sh
 ```
 
 This installs the app to `/apps/torii-call/`, runs the signaling server as a
 systemd service, and exposes it at `/call/` behind nginx. Add coturn for the
 TURN relay (privacy hardening) by setting `TURN_URL`/`TURN_USER`/`TURN_PASS`
 in `deploy/torii-call.service`, then restart the service.
+
+### Launcher panel on chiefmonkey.art
+
+To surface Torii Call as a tile next to Flock Map / Quest, register it in the
+Torii launcher the same way as the other apps: drop `deploy/nginx-torii-call.conf`
+into the host's nginx fragments, then add `{"id":"torii-call","title":"Torii Call","path":"/call/"}`
+to the launcher registry and reload. (Same fragment-before-registration rule as the other tiles.)
 
 ## Layout
 

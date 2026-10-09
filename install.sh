@@ -5,8 +5,11 @@
 # a systemd service, and exposes it at /call/ behind nginx. Optional TURN (coturn)
 # is installed but disabled unless you set TURN_URL/TURN_USER/TURN_PASS.
 #
-# Usage (single line):
-#   curl -fsSL https://raw.githubusercontent.com/ChiefmonkeyArt/torii-call/main/install.sh | sudo bash
+# Usage (single line, from the repo root):
+#   git clone https://github.com/ChiefmonkeyArt/torii-call.git && cd torii-call && sudo ./install.sh
+#
+# The repo is PRIVATE. To clone it on the VPS, either use an SSH deploy key
+# (git remote) or pass a read token:  GH_TOKEN=ghp_xxx sudo -E ./install.sh
 #
 # This mirrors the restricted, owner-operated deploy pattern used by the Torii
 # apps: nothing is pushed here except what you invoke yourself.
@@ -28,10 +31,14 @@ fi
 
 # 2. Lay down the app
 mkdir -p "${APP_DIR}"
+REPO_URL="https://github.com/ChiefmonkeyArt/torii-call.git"
+if [ -n "${GH_TOKEN:-}" ]; then
+  REPO_URL="https://${GH_TOKEN}@github.com/ChiefmonkeyArt/torii-call.git"
+fi
 if [ -d "${RELEASE_DIR}/.git" ]; then
   git -C "${RELEASE_DIR}" pull --ff-only origin main
 else
-  git clone --depth 1 https://github.com/ChiefmonkeyArt/torii-call.git "${RELEASE_DIR}"
+  git clone --depth 1 "${REPO_URL}" "${RELEASE_DIR}"
 fi
 cd "${RELEASE_DIR}"
 npm install --omit=dev
