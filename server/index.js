@@ -27,15 +27,24 @@ function stripBase(p) {
   return p;
 }
 
-// ---- ICE servers exposed to clients (STUN always; TURN when configured) ----
+// ---- ICE servers exposed to clients (STUN always; TURN only when real) ----
+// TURN is included only when a real URL and credentials are present, so a
+// placeholder (turn:CHANGEME / __CHANGE...) never turns into a broken entry
+// that the client would force all media through.
+function isPlaceholder(v) {
+  return !v || v.startsWith("__") || /CHANGEME/i.test(v);
+}
 function iceServers() {
   const servers = [{ urls: ["stun:stun.l.google.com:19302"] }];
-  if (process.env.TURN_URL) {
-    servers.push({
-      urls: [process.env.TURN_URL],
-      username: process.env.TURN_USER || "",
-      credential: process.env.TURN_PASS || "",
-    });
+  const turnUrl = process.env.TURN_URL || "";
+  const turnUser = process.env.TURN_USER || "";
+  const turnPass = process.env.TURN_PASS || "";
+  if (
+    !isPlaceholder(turnUrl) &&
+    !isPlaceholder(turnUser) &&
+    !isPlaceholder(turnPass)
+  ) {
+    servers.push({ urls: [turnUrl], username: turnUser, credential: turnPass });
   }
   return servers;
 }

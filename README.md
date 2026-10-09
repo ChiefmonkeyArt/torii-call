@@ -37,30 +37,26 @@ Open it twice (or in two browsers), share the invite link, and talk.
 
 ## Deploy to your VPS (one line)
 
-The repo is private, so clone with a deploy key or a read token first:
-
 ```bash
 git clone https://github.com/ChiefmonkeyArt/torii-call.git && cd torii-call && sudo ./install.sh
-# or, on a host without an SSH key:  GH_TOKEN=ghp_xxx sudo -E ./install.sh
 ```
 
 This installs the app to `/apps/torii-call/`, runs the signaling server as a
-systemd service, and exposes it at `/call/` behind nginx. Add coturn for the
-TURN relay (privacy hardening) by setting `TURN_URL`/`TURN_USER`/`TURN_PASS`
-in `deploy/torii-call.service`, then restart the service.
+reboot-safe systemd service, and mounts it at **`/call/`** behind nginx. It also
+drops the Torii-Base nginx fragment and registers the launcher tile
+(`torii register call`), so a "Torii Call" panel appears next to Flock Map / Quest
+automatically.
 
-### Launcher panel on chiefmonkey.art
-
-To surface Torii Call as a tile next to Flock Map / Quest, register it in the
-Torii launcher the same way as the other apps: drop `deploy/nginx-torii-call.conf`
-into the host's nginx fragments, then add `{"id":"torii-call","title":"Torii Call","path":"/call/"}`
-to the launcher registry and reload. (Same fragment-before-registration rule as the other tiles.)
+Add coturn for the TURN relay (IP-hiding privacy hardening) by uncommenting and
+setting `TURN_URL`/`TURN_USER`/`TURN_PASS` in `deploy/torii-call.service`, then
+`systemctl daemon-reload && systemctl restart torii-call`. Until then it runs
+STUN-only (calls work on most networks, but peers on strict NAT may need TURN).
 
 ## Layout
 
 - `server/index.js` — HTTP static + WebSocket signaling (single process).
 - `public/` — the client (`index.html`, `app.js`, `style.css`).
 - `coturn/` — TURN relay config (IP-hiding privacy).
-- `deploy/` — systemd unit + nginx fragment.
+- `deploy/` — systemd unit + nginx fragment (`call.conf` → `/call/`).
 - `install.sh` — the one-line VPS installer.
 - `tools/test.mjs` — signaling smoke test.
