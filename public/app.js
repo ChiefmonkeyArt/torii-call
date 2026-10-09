@@ -36,7 +36,10 @@
   // ---- small helpers ---------------------------------------------------------
   function $(id) { return document.getElementById(id); }
   function send(obj) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj)); }
-  function setCount() { countEl.textContent = `${1 + peers.size} in call`; }
+  function setCount() {
+    const remote = [...peers.keys()].filter((id) => id !== "me").length;
+    countEl.textContent = `${1 + remote} in call`;
+  }
 
   function makeId() {
     const bytes = new Uint8Array(8);
@@ -210,7 +213,12 @@
         case "joined": {
           selfId = msg.selfId;
           const existing = msg.peers || [];
-          await ensureMedia();
+          try {
+            await ensureMedia();
+          } catch (e) {
+            showError("Camera/microphone access is required: " + e.name);
+            break;
+          }
           // As the newcomer, offer to everyone already here.
           existing.forEach((p) => offerTo(p.id));
           break;
@@ -269,13 +277,9 @@
     await resolvePubkey(2500);
     myName = typed || (pubkey ? shortNpub(pubkey) : "guest");
 
+    // Media is initialized (and the offer made) in the "joined" handler, so
+    // there is exactly one media path and one error path.
     connect();
-
-    try {
-      await ensureMedia();
-    } catch (e) {
-      showError("Camera/microphone access is required: " + e.name);
-    }
   }
 
   function showError(msg) {
