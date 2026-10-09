@@ -149,7 +149,10 @@
     return pc;
   }
 
-  async function offerTo(peerId) {
+  async function offerTo(peerId, name) {
+    // Create the tile first — newPeerConnection returns null when the peer
+    // isn't in the map yet, which used to silently drop every outgoing offer.
+    getOrCreatePeer(peerId, name || "peer");
     const pc = newPeerConnection(peerId);
     if (!pc) return;
     try {
@@ -220,7 +223,7 @@
             break;
           }
           // As the newcomer, offer to everyone already here.
-          existing.forEach((p) => offerTo(p.id));
+          existing.forEach((p) => offerTo(p.id, p.name || shortNpub(p.pubkey)));
           break;
         }
         case "peer-joined": {

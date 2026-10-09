@@ -10,6 +10,9 @@
 }
 
 * { box-sizing: border-box; }
+/* The hidden attribute must win over any display rule (e.g. #call's flex),
+   otherwise the call view renders stacked beneath the landing. */
+[hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -60,7 +63,7 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .hint { color: var(--muted); font-size: 12px; margin: 16px 0 0; line-height: 1.5; }
 
 /* Call */
-#call { display: flex; flex-direction: column; height: 100%; }
+#call { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
@@ -76,7 +79,7 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
   gap: 10px;
   padding: 14px;
   overflow-y: auto;
-  align-content: start;
+  align-content: center;
 }
 .tile {
   position: relative;
